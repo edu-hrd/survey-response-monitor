@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>교육과정 수료생 설문 응답 현황</title>
+  <style>
+    :root { color-scheme: light; --ink:#182935; --muted:#52636b; --line:#dbe4e5; --accent:#006e65; --paper:#f4f7f6; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:Inter,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif; line-height:1.55; }
+    .shell { width:min(1100px, 100% - 40px); margin-inline:auto; }
+    header { background:#112e36; color:white; padding:42px 0 70px; }
+    header p { color:#c1dad8; margin:8px 0 0; }
+    h1 { margin:0; font-size:clamp(1.75rem,4vw,2.6rem); line-height:1.2; letter-spacing:-.045em; }
+    h2 { margin:0; font-size:1.25rem; letter-spacing:-.03em; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:-38px; }
+    .metric, .panel { background:white; border:1px solid var(--line); border-radius:14px; }
+    .metric { min-width:0; padding:16px 18px; }
+    .metric span { color:var(--muted); font-size:.85rem; display:block; }
+    .metric strong { display:block; font-size:clamp(1.25rem,3.3vw,2rem); letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+    .metric .small { font-size:.77rem; }
+    .panel { margin-top:22px; overflow:hidden; }
+    .panel-head { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:18px 20px; }
+    .panel-head p { margin:3px 0 0; color:var(--muted); font-size:.82rem; }
+    .filters { display:flex; gap:4px; border:1px solid var(--line); padding:3px; border-radius:9px; }
+    button { font:inherit; font-size:.82rem; color:var(--muted); background:white; border:0; padding:5px 10px; border-radius:6px; cursor:pointer; }
+    button[aria-pressed="true"] { color:white; background:var(--accent); }
+    button:focus-visible { outline:2px solid #26867d; outline-offset:3px; }
+    .scroll { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:410px; font-size:.89rem; }
+    th, td { padding:11px 12px; border-top:1px solid var(--line); text-align:left; }
+    thead th { background:#edf3f2; color:#43585d; font-size:.78rem; white-space:nowrap; }
+    th:first-child,td:first-child { padding-left:20px; }
+    tbody th { font-weight:650; }
+    tbody tr:nth-child(even) { background:#fafcfb; }
+    .code { display:inline-block; margin-right:8px; font-size:.72rem; font-weight:500; color:var(--muted); }
+    .number { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .rate { color:var(--accent); font-weight:700; }
+    .unknown { color:var(--muted); font-weight:400; }
+    footer { margin:14px 0 28px; color:var(--muted); font-size:.8rem; }
+    footer p { margin:4px 0; }
+    @media (max-width:640px) {
+      .shell { width:calc(100% - 24px); }
+      header { padding:32px 0 60px; }
+      .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+      .metric { padding:12px; }
+      .panel-head { padding:14px; }
+      th,td { padding:10px 7px; }
+      th:first-child,td:first-child { padding-left:12px; }
+      table { min-width:0; font-size:.78rem; }
+      .code { display:block; margin-right:0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell">
+      <h1>수료생 설문 응답 현황</h1>
+      <p>바이오헬스 분야 교육과정 · 2026. 11. 10. ~ 11. 16.</p>
+    </div>
+  </header>
+  <main class="shell">
+    <div class="metrics" aria-label="전체 응답 현황">
+      <div class="metric"><span>배포 인원</span><strong id="target">421명</strong><span class="small">20종 설문</span></div>
+      <div class="metric"><span>확인된 완료 응답</span><strong id="completed">—</strong><span class="small" id="coverage">—</span></div>
+      <div class="metric"><span>전체 응답률</span><strong id="overall">—</strong><span class="small">완료 응답 ÷ 배포 인원</span></div>
+      <div class="metric"><span>마지막 확인</span><strong id="day">—</strong><span class="small" id="time">한국시간</span></div>
+    </div>
+    <section class="panel" aria-labelledby="detail-heading">
+      <div class="panel-head">
+        <div><h2 id="detail-heading">설문별 응답 현황</h2><p id="selection" aria-live="polite"></p></div>
+        <div class="filters" role="group" aria-label="수료 구분">
+          <button type="button" data-group="all" aria-pressed="true">전체</button>
+          <button type="button" data-group="S" aria-pressed="false">1회 수료</button>
+          <button type="button" data-group="M" aria-pressed="false">복수 수료</button>
+        </div>
+      </div>
+      <div class="scroll">
+        <table aria-labelledby="detail-heading">
+          <thead><tr><th scope="col">과정</th><th scope="col">수료</th><th scope="col" class="number">배포</th><th scope="col" class="number">완료</th><th scope="col" class="number">응답률</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+    <footer>
+      <p>SurveyMonkey에서 확인한 완료 응답을 집계했습니다. 아래 수치는 확인 시점의 기록입니다.</p>
+      <p id="missing" hidden>미확인 설문의 완료 건수는 집계에서 제외됩니다. 20종 모두 확인되면 전체 응답률을 표시합니다.</p>
+    </footer>
+    <noscript>응답 현황 표를 보려면 브라우저에서 JavaScript를 사용하도록 설정해 주세요.</noscript>
+  </main>
+  <script type="application/json" id="snapshot">
+{
+  "09-S": {
+    "count": 14,
+    "verifiedAt": "2026-11-11T05:35:26.225Z"
+  },
+  "01-S": {
+    "count": 3,
+    "verifiedAt": "2026-11-11T05:37:51.340Z"
+  },
+  "02-S": {
+    "count": 4,
+    "verifiedAt": "2026-11-11T05:37:51.341Z"
+  },
+  "05-S": {
+    "count": 1,
+    "verifiedAt": "2026-11-11T05:37:56.095Z"
+  },
+  "03-S": {
+    "count": 3,
+    "verifiedAt": "2026-11-11T05:37:56.479Z"
+  },
+  "08-S": {
+    "count": 1,
+    "verifiedAt": "2026-11-11T05:38:08.840Z"
+  },
+  "07-M": {
+    "count": 2,
+    "verifiedAt": "2026-11-11T05:38:09.189Z"
+  },
+  "09-M": {
+    "count": 1,
+    "verifiedAt": "2026-11-11T05:38:14.147Z"
+  }
+}
+  </script>
+  <script>
+    const surveys = [
+      ['01-S', '제약·바이오산업 연구개발 직무과정', 24],
+      ['02-S', '제약·바이오산업 생산·품질 직무과정', 30],
+      ['02-M', '제약·바이오산업 생산·품질 직무과정', 4],
+      ['03-S', '의약품 MR·마케팅 직무과정', 18],
+      ['04-S', '의료기기산업 직무과정', 11],
+      ['05-S', '화장품산업 직무과정', 16],
+      ['06-S', '의약품 품질보증 직무과정', 8],
+      ['06-M', '의약품 품질보증 직무과정', 6],
+      ['07-S', '의약품 실무실습과정', 7],
+      ['07-M', '의약품 실무실습과정', 30],
+      ['08-S', '제약바이오산업 현장적용과정', 4],
+      ['08-M', '제약바이오산업 현장적용과정', 5],
+      ['09-S', '바이오헬스산업 일자리아카데미', 221],
+      ['09-M', '바이오헬스산업 일자리아카데미', 25],
+      ['11-S', 'GMP 현장적용과정', 1],
+      ['11-M', 'GMP 현장적용과정', 4],
+      ['12-S', '실전 취업역량 강화과정', 3],
+      ['13-S', '맞춤형 취업역량 강화과정', 1],
+      ['13-M', '맞춤형 취업역량 강화과정', 1],
+      ['14-S', '취업역량강화 집중캠프', 2]
+    ];
+    const get = id => document.getElementById(id);
+    const snapshot = JSON.parse(get('snapshot').textContent);
+    const number = new Intl.NumberFormat('ko-KR');
+    const percent = new Intl.NumberFormat('ko-KR', {style:'percent', minimumFractionDigits:1, maximumFractionDigits:1});
+    const total = surveys.reduce((sum, row) => sum + row[2], 0);
+    const verified = surveys.filter(([code]) => Number.isInteger(snapshot[code]?.count) && snapshot[code].count >= 0);
+    const completed = verified.reduce((sum, [code]) => sum + snapshot[code].count, 0);
+    const lastCheck = verified.map(([code]) => snapshot[code].verifiedAt).sort().at(-1);
+
+    get('target').textContent = `${number.format(total)}명`;
+    get('completed').textContent = verified.length ? `${number.format(completed)}명` : '—';
+    get('coverage').textContent = `20종 중 ${verified.length}종 확인`;
+    get('overall').textContent = verified.length === surveys.length ? percent.format(completed / total) : '집계 중';
+    get('missing').hidden = verified.length === surveys.length;
+    if (lastCheck) {
+      const zone = {timeZone:'Asia/Seoul'};
+      get('day').textContent = new Intl.DateTimeFormat('ko-KR', {...zone, year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date(lastCheck));
+      get('time').textContent = `${new Intl.DateTimeFormat('ko-KR', {...zone, hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).format(new Date(lastCheck))} 한국시간`;
+    }
+
+    function render(group) {
+      const shown = surveys.filter(([code]) => group === 'all' || code.endsWith(group));
+      const rows = document.createDocumentFragment();
+      for (const [code, title, target] of shown) {
+        const count = snapshot[code]?.count;
+        const known = Number.isInteger(count) && count >= 0;
+        const row = document.createElement('tr');
+        const name = document.createElement('th');
+        const identifier = document.createElement('span');
+        name.scope = 'row';
+        identifier.className = 'code';
+        identifier.textContent = code;
+        name.append(identifier, title);
+        row.append(name);
+        const values = [code.endsWith('S') ? '1회' : '복수', number.format(target), known ? number.format(count) : '미확인', known ? percent.format(count / target) : '—'];
+        for (const [index, value] of values.entries()) {
+          const cell = row.insertCell();
+          cell.textContent = value;
+          if (index > 0) cell.classList.add('number');
+          if (index === 3 && known) cell.classList.add('rate');
+          if (index > 1 && !known) cell.classList.add('unknown');
+        }
+        rows.append(row);
+      }
+      get('rows').replaceChildren(rows);
+      const distributed = shown.reduce((sum, row) => sum + row[2], 0);
+      get('selection').textContent = `${shown.length}종 · 배포 ${number.format(distributed)}명`;
+    }
+
+    const filters = document.querySelectorAll('[data-group]');
+    for (const button of filters) {
+      button.addEventListener('click', () => {
+        for (const filter of filters) filter.setAttribute('aria-pressed', String(filter === button));
+        render(button.dataset.group);
+      });
+    }
+    render('all');
+  </script>
+</body>
+</html>
