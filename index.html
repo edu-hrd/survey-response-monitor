@@ -12,7 +12,10 @@
     .shell { width:min(1100px, 100% - 40px); margin-inline:auto; }
     header { background:#112e36; color:white; padding:42px 0 70px; }
     header p { color:#c1dad8; margin:8px 0 0; }
-    .interview-link { display:inline-block; color:white; margin-top:12px; font-size:.9rem; text-underline-offset:3px; }
+    .page-nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    .page-nav a { display:inline-block; padding:8px 12px; border:1px solid #a8cac7; border-radius:8px; color:white; text-decoration:none; font-size:.9rem; font-weight:650; }
+    .page-nav a[aria-current="page"] { color:#112e36; background:#e1f0ee; border-color:#e1f0ee; }
+    .page-nav a:focus-visible { outline:2px solid white; outline-offset:3px; }
     h1 { margin:0; font-size:clamp(1.75rem,4vw,2.6rem); line-height:1.2; letter-spacing:-.045em; }
     h2 { margin:0; font-size:1.25rem; letter-spacing:-.03em; }
     .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:-38px; }
@@ -59,7 +62,10 @@
     <div class="shell">
       <h1>수료생 설문 응답 현황</h1>
       <p>바이오헬스 분야 교육과정 · 2026. 11. 10. ~ 11. 16.</p>
-      <a class="interview-link" href="./interviews.html">인터뷰 참여 의향 현황 →</a>
+      <nav class="page-nav" aria-label="현황 페이지">
+        <a href="./" aria-current="page">전체 응답현황</a>
+        <a href="./interviews.html">인터뷰 참여 의향 현황 →</a>
+      </nav>
     </div>
   </header>
   <main class="shell">
