@@ -141,7 +141,7 @@
       </div>
       <div class="scroll" tabindex="0" aria-label="인터뷰 섭외 목록">
         <table id="interview-table" aria-labelledby="roster-heading">
-          <thead><tr><th scope="col">과정·응답</th><th scope="col">재직 상태·산업</th><th scope="col">교육 의견</th><th scope="col">연락처</th></tr></thead>
+          <thead><tr><th scope="col">과정·응답</th><th scope="col">산업·재직 상태</th><th scope="col">교육 의견</th><th scope="col">연락처</th></tr></thead>
           <tbody id="interview-rows"></tbody>
         </table>
       </div>
@@ -366,8 +366,11 @@
           course.scope = 'row';
           addText(course, 'small', `${candidate.code} · 응답 #${candidate.ordinal}`);
           addText(course, 'small', candidate.modified);
-          const job = addText(row, 'td', candidate.status);
-          if (candidate.industry) addText(job, 'small', `${candidate.employed ? '근무 산업' : '희망 산업'} · ${candidate.industry}`);
+          const industry = candidate.industry
+            ? `${candidate.employed ? '근무 산업' : '희망 산업'} · ${candidate.industry}`
+            : '산업 미기재';
+          const job = addText(row, 'td', industry);
+          addText(job, 'small', candidate.status);
           const opinion = addText(row, 'td', candidate.opinion || '개선 의견 미기재');
           if (candidate.relevance) addText(opinion, 'small', `교육 관련성 · ${candidate.relevance}`);
           const phone = addText(row, 'td', '');
