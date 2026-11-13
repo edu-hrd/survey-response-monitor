@@ -365,14 +365,15 @@
 
     function readAggregateCsv(csv) {
       const [header, ...lines] = csv.trim().split(/\r?\n/);
-      if (header !== 'code,distributed,completed,interviews,automatic' || lines.length !== surveys.length) {
+      const hasStatus = header === 'code,distributed,completed,interviews,automatic';
+      if ((!hasStatus && header !== 'code,distributed,completed,interviews') || lines.length !== surveys.length) {
         throw new Error('Unexpected aggregate CSV format');
       }
       const targets = new Map(surveys.map(([code, , target]) => [code, target]));
       const rows = new Map();
       for (const line of lines) {
-        const match = /^([0-9]{2}-[SM]),([0-9]+),([0-9]+),([0-9]+),([01])$/.exec(line);
-        if (!match) throw new Error('Invalid aggregate CSV row');
+        const match = /^([0-9]{2}-[SM]),([0-9]+),([0-9]+),([0-9]+)(?:,([01]))?$/.exec(line);
+        if (!match || hasStatus !== (match[5] !== undefined)) throw new Error('Invalid aggregate CSV row');
         const [, code, targetText, countText, interviewText, automatic] = match;
         const count = Number(countText);
         const interviews = Number(interviewText);
@@ -380,7 +381,7 @@
             !Number.isSafeInteger(count) || !Number.isSafeInteger(interviews) || interviews > count) {
           throw new Error('Inconsistent aggregate CSV row');
         }
-        rows.set(code, {count, interviews, automatic: automatic === '1'});
+        rows.set(code, {count, interviews, automatic: hasStatus ? automatic === '1' : null});
       }
       return rows;
     }
@@ -393,15 +394,25 @@
     }
 
     let checkingSheet = false;
+    async function fetchAggregate() {
+      for (const useCacheBuster of [true, false]) {
+        try {
+          const url = new URL(aggregateUrl);
+          if (useCacheBuster) url.searchParams.set('_', Date.now());
+          const response = await fetch(url, {cache:'no-store', credentials:'omit', signal:AbortSignal.timeout(10000)});
+          if (!response.ok) throw new Error(`Aggregate returned ${response.status}`);
+          return readAggregateCsv(await response.text());
+        } catch (error) {
+          if (!useCacheBuster) throw error;
+        }
+      }
+    }
+
     async function checkSheetAggregate() {
       if (checkingSheet) return;
       checkingSheet = true;
       try {
-        const url = new URL(aggregateUrl);
-        url.searchParams.set('_', Date.now());
-        const response = await fetch(url, {cache:'no-store', credentials:'omit', signal:AbortSignal.timeout(15000)});
-        if (!response.ok) throw new Error('Aggregate unavailable');
-        const rows = readAggregateCsv(await response.text());
+        const rows = await fetchAggregate();
         const checkedAt = new Date().toISOString();
         for (const [code, row] of rows) snapshot[code] = {...snapshot[code], ...row, verifiedAt:checkedAt};
         sheetCheckedAt = checkedAt;
@@ -409,11 +420,13 @@
         const automatic = values.filter(row => row.automatic).length;
         const count = values.reduce((sum, row) => sum + row.interviews, 0);
         get('response-interviews').textContent = `${number.format(count)}건`;
-        reportSheetStatus(`Google Sheets 통합표 기준 · 자동 수신 ${automatic}종 · 원본 대조값 ${surveys.length - automatic}종`);
+        reportSheetStatus(values[0].automatic === null ? 'Google Sheets 통합표 기준' :
+          `Google Sheets 통합표 기준 · 자동 수신 ${automatic}종 · 원본 대조값 ${surveys.length - automatic}종`);
         renderMetrics();
         render(activeGroup);
         window.dispatchEvent(new CustomEvent('sheet-interview-summary', {detail:{count, verifiedAt:checkedAt}}));
-      } catch {
+      } catch (error) {
+        console.warn('Google Sheets aggregate refresh failed:', error.message);
         reportSheetStatus(sheetCheckedAt ? 'Google Sheets 집계 연결이 지연되어 마지막으로 읽은 집계를 표시합니다.' : 'Google Sheets 집계를 읽을 수 없어 마지막 게시 기록을 표시합니다.');
       } finally {
         checkingSheet = false;
