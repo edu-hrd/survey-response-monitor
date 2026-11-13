@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' https://docs.google.com https://*.googleusercontent.com; form-action 'none'; base-uri 'none'">
   <title>교육과정 수료생 설문 응답 현황</title>
   <style>
     :root { color-scheme: light; --ink:#182935; --muted:#52636b; --line:#dbe4e5; --accent:#006e65; --paper:#f4f7f6; }
@@ -20,7 +20,7 @@
     .page-nav a:focus-visible { outline:2px solid white; outline-offset:3px; }
     h1 { margin:0; font-size:clamp(1.75rem,4vw,2.6rem); line-height:1.2; letter-spacing:-.045em; }
     h2 { margin:0; font-size:1.25rem; letter-spacing:-.03em; }
-    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:-38px; }
+    .metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-top:-38px; }
     .metric, .panel { background:white; border:1px solid var(--line); border-radius:14px; }
     .metric { min-width:0; padding:16px 18px; }
     .metric span { color:var(--muted); font-size:.85rem; display:block; }
@@ -91,7 +91,8 @@
       <div class="metric"><span>배포 인원</span><strong id="target">421명</strong><span class="small">20종 설문</span></div>
       <div class="metric"><span>확인된 완료 응답</span><strong id="completed">—</strong><span class="small" id="coverage">—</span></div>
       <div class="metric"><span>전체 응답률</span><strong id="overall">—</strong><span class="small">완료 응답 ÷ 배포 인원</span></div>
-      <div class="metric"><span>SurveyMonkey 원본 확인</span><strong id="day">—</strong><span class="small" id="time">한국시간</span></div>
+      <div class="metric"><span>인터뷰 참여 의향</span><strong id="response-interviews">—</strong><span class="small">완료 응답 중 참여 의향</span></div>
+      <div class="metric"><span>마지막 집계 확인</span><strong id="day">—</strong><span class="small" id="time">한국시간</span></div>
     </div>
     <section class="panel" aria-labelledby="detail-heading">
       <div class="panel-head">
@@ -104,14 +105,14 @@
       </div>
       <div class="scroll">
         <table aria-labelledby="detail-heading">
-          <thead><tr><th scope="col">과정</th><th scope="col">수료</th><th scope="col" class="number">배포</th><th scope="col" class="number">완료</th><th scope="col" class="number">응답률</th></tr></thead>
+          <thead><tr><th scope="col">과정</th><th scope="col">수료</th><th scope="col" class="number">배포</th><th scope="col" class="number">완료</th><th scope="col" class="number">응답률</th><th scope="col" class="number">인터뷰 의향</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
     </section>
     <footer>
-      <p>완료 응답 건수는 20종의 공개 집계 화면에서 확인한 기록입니다. 과정 옆의 ‘공개 집계’에서 출처를 열 수 있습니다.</p>
-      <p>이 화면은 GitHub에 새로 게시된 집계를 1분마다 확인합니다. SurveyMonkey 원본 확인 시각은 원본을 다시 확인한 뒤 집계를 게시하면 갱신됩니다.</p>
+      <p id="sheet-status" role="status">Google Sheets 집계를 불러오는 중입니다.</p>
+      <p>이 페이지를 열어 두면 공개용 집계를 1분마다 확인합니다. 마지막 집계 확인은 웹이 집계를 읽은 시각입니다. Google Sheets의 반영에는 시간이 더 걸릴 수 있습니다.</p>
       <p id="missing" hidden>미확인 설문의 완료 건수는 집계에서 제외됩니다. 20종 모두 확인되면 전체 응답률을 표시합니다.</p>
     </footer>
     <noscript>응답 현황 표를 보려면 브라우저에서 JavaScript를 사용하도록 설정해 주세요.</noscript>
@@ -122,9 +123,10 @@
       <strong class="interview-total" id="interview-total">18건</strong>
       <p id="interview-summary-time">마지막 집계 확인 2026년 11월 12일 16:03 한국시간</p>
     </section>
+    <p id="interview-feed-status" class="muted" role="status">Google Sheets 집계를 불러오는 중입니다.</p>
     <form id="unlock" class="panel" autocomplete="off">
       <h2>인터뷰 섭외 목록</h2>
-      <p class="muted">암호를 입력하면 의향자별 재직 상태, 산업, 교육 의견, 연락처를 볼 수 있습니다.</p>
+      <p class="muted">암호를 입력하면 마지막으로 확인해 게시한 의향자별 재직 상태, 산업, 교육 의견, 연락처를 볼 수 있습니다.</p>
       <div class="unlock-actions">
         <label for="interview-password">열람 암호</label>
         <input id="interview-password" type="password" required autocomplete="off">
@@ -279,13 +281,15 @@
     ];
     const get = id => document.getElementById(id);
     let snapshot = JSON.parse(get('snapshot').textContent);
+    const aggregateUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQAEbrGQLAQ9Jz76zFJr1-jmSuzOs95CKRBWhot4mgT_y-qxFZBau0Cf23F9lMJoRt5F7exzlJZQXZA/pub?gid=0&single=true&output=csv';
+    let sheetCheckedAt = null;
     const number = new Intl.NumberFormat('ko-KR');
     const percent = new Intl.NumberFormat('ko-KR', {style:'percent', minimumFractionDigits:1, maximumFractionDigits:1});
     const total = surveys.reduce((sum, row) => sum + row[2], 0);
     function renderMetrics() {
       const verified = surveys.filter(([code]) => Number.isInteger(snapshot[code]?.count) && snapshot[code].count >= 0);
       const completed = verified.reduce((sum, [code]) => sum + snapshot[code].count, 0);
-      const lastCheck = verified.map(([code]) => snapshot[code].verifiedAt).sort().at(-1);
+      const lastCheck = sheetCheckedAt || verified.map(([code]) => snapshot[code].verifiedAt).sort().at(-1);
 
       get('target').textContent = `${number.format(total)}명`;
       get('completed').textContent = verified.length ? `${number.format(completed)}명` : '—';
@@ -323,7 +327,8 @@
           name.append(source);
         }
         row.append(name);
-        const values = [code.endsWith('S') ? '1회' : '복수', number.format(target), known ? number.format(count) : '미확인', known ? percent.format(count / target) : '—'];
+        const interviews = snapshot[code]?.interviews;
+        const values = [code.endsWith('S') ? '1회' : '복수', number.format(target), known ? number.format(count) : '미확인', known ? percent.format(count / target) : '—', Number.isInteger(interviews) ? number.format(interviews) : '—'];
         for (const [index, value] of values.entries()) {
           const cell = row.insertCell();
           cell.textContent = value;
@@ -358,23 +363,68 @@
       return JSON.parse(html.slice(start + startTag.length, end));
     }
 
+    function readAggregateCsv(csv) {
+      const [header, ...lines] = csv.trim().split(/\r?\n/);
+      if (header !== 'code,distributed,completed,interviews,automatic' || lines.length !== surveys.length) {
+        throw new Error('Unexpected aggregate CSV format');
+      }
+      const targets = new Map(surveys.map(([code, , target]) => [code, target]));
+      const rows = new Map();
+      for (const line of lines) {
+        const match = /^([0-9]{2}-[SM]),([0-9]+),([0-9]+),([0-9]+),([01])$/.exec(line);
+        if (!match) throw new Error('Invalid aggregate CSV row');
+        const [, code, targetText, countText, interviewText, automatic] = match;
+        const count = Number(countText);
+        const interviews = Number(interviewText);
+        if (rows.has(code) || targets.get(code) !== Number(targetText) ||
+            !Number.isSafeInteger(count) || !Number.isSafeInteger(interviews) || interviews > count) {
+          throw new Error('Inconsistent aggregate CSV row');
+        }
+        rows.set(code, {count, interviews, automatic: automatic === '1'});
+      }
+      return rows;
+    }
+
+    function reportSheetStatus(message) {
+      for (const id of ['sheet-status', 'interview-feed-status']) {
+        const status = get(id);
+        if (status.textContent !== message) status.textContent = message;
+      }
+    }
+
+    let checkingSheet = false;
+    async function checkSheetAggregate() {
+      if (checkingSheet) return;
+      checkingSheet = true;
+      try {
+        const url = new URL(aggregateUrl);
+        url.searchParams.set('_', Date.now());
+        const response = await fetch(url, {cache:'no-store', credentials:'omit', signal:AbortSignal.timeout(15000)});
+        if (!response.ok) throw new Error('Aggregate unavailable');
+        const rows = readAggregateCsv(await response.text());
+        const checkedAt = new Date().toISOString();
+        for (const [code, row] of rows) snapshot[code] = {...snapshot[code], ...row, verifiedAt:checkedAt};
+        sheetCheckedAt = checkedAt;
+        const values = [...rows.values()];
+        const automatic = values.filter(row => row.automatic).length;
+        const count = values.reduce((sum, row) => sum + row.interviews, 0);
+        get('response-interviews').textContent = `${number.format(count)}건`;
+        reportSheetStatus(`Google Sheets 통합표 기준 · 자동 수신 ${automatic}종 · 원본 대조값 ${surveys.length - automatic}종`);
+        renderMetrics();
+        render(activeGroup);
+        window.dispatchEvent(new CustomEvent('sheet-interview-summary', {detail:{count, verifiedAt:checkedAt}}));
+      } catch {
+        reportSheetStatus(sheetCheckedAt ? 'Google Sheets 집계 연결이 지연되어 마지막으로 읽은 집계를 표시합니다.' : 'Google Sheets 집계를 읽을 수 없어 마지막 게시 기록을 표시합니다.');
+      } finally {
+        checkingSheet = false;
+      }
+    }
+
     async function checkPublishedSnapshot() {
       try {
         const response = await fetch('./index.html', {cache:'no-cache', credentials:'omit', signal:AbortSignal.timeout(15000)});
         if (!response.ok) return;
         const html = await response.text();
-        const next = publishedBlock(html, 'snapshot');
-        const valid = surveys.every(([code]) => {
-          const row = next?.[code];
-          return Number.isInteger(row?.count) && row.count >= 0 &&
-            Number.isFinite(Date.parse(row.verifiedAt)) && Date.parse(row.verifiedAt) >= Date.parse(snapshot[code]?.verifiedAt || 0) &&
-            /^https:\/\/ko\.surveymonkey\.com\/(?:stories|results)\/SM-[\w]+\/$/.test(row.sourceUrl);
-        });
-        if (valid && JSON.stringify(next) !== JSON.stringify(snapshot)) {
-          snapshot = next;
-          renderMetrics();
-          render(activeGroup);
-        }
         window.dispatchEvent(new CustomEvent('published-interviews', {detail:{
           summary:publishedBlock(html, 'interview-summary'),
           seal:publishedBlock(html, 'interview-seal')
@@ -383,7 +433,12 @@
         // Leave the last verified snapshot visible when the site is temporarily unavailable.
       }
     }
-    window.setInterval(checkPublishedSnapshot, 60_000);
+    function refreshDashboard() {
+      checkSheetAggregate();
+      checkPublishedSnapshot();
+    }
+    window.addEventListener('DOMContentLoaded', refreshDashboard, {once:true});
+    window.setInterval(refreshDashboard, 60_000);
   </script>
   <script type="application/json" id="interview-summary">{"count":18,"verifiedAt":"2026-11-12T07:03:10.500Z"}</script>
   <script type="application/json" id="interview-seal">{"salt":"CzQZMb5oupy3QlpoaFqimw==","iv":"TAZVo66SMq9hkqB/","data":"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"}</script>
@@ -399,12 +454,14 @@
       const rows = byId('interview-rows');
       const timeFormat = new Intl.DateTimeFormat('ko-KR', {timeZone:'Asia/Seoul', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23'});
       let interviewSummary = JSON.parse(byId('interview-summary').textContent);
+      let liveInterviewSummary = null;
       let interviewSeal = JSON.parse(byId('interview-seal').textContent);
       let rosterKey = null;
 
       function renderSummary() {
-        byId('interview-total').textContent = `${interviewSummary.count}건`;
-        byId('interview-summary-time').textContent = `마지막 집계 확인 ${timeFormat.format(new Date(interviewSummary.verifiedAt))} 한국시간`;
+        const displayed = liveInterviewSummary || interviewSummary;
+        byId('interview-total').textContent = `${displayed.count}건`;
+        byId('interview-summary-time').textContent = `마지막 집계 확인 ${timeFormat.format(new Date(displayed.verifiedAt))} 한국시간`;
       }
 
       function showView(focus) {
@@ -551,6 +608,10 @@
       filter.addEventListener('change', filterRows);
       window.addEventListener('hashchange', () => showView(true));
       window.addEventListener('published-interviews', acceptInterviewUpdate);
+      window.addEventListener('sheet-interview-summary', event => {
+        liveInterviewSummary = event.detail;
+        renderSummary();
+      });
       renderSummary();
       showView(false);
     })();
